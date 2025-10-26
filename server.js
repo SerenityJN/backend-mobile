@@ -8,7 +8,7 @@ import studentStatusRoute from "./routes/studentstatus.js";
 import studentProfileRoute from "./routes/studentprofile.js";
 
 const app = express();
-const PORT = 1000;
+const PORT = process.env.PORT || 1000;
 
 // === Middleware ===
 app.use(cors());

@@ -6,6 +6,7 @@ import bodyParser from "body-parser";
 import loginRoute from "./routes/login.js";
 import studentStatusRoute from "./routes/studentstatus.js";
 import studentProfileRoute from "./routes/studentprofile.js";
+import changePasswordRoute from "./routes/changepassword.js";
 
 const app = express();
 const PORT = process.env.PORT || 1000;
@@ -18,12 +19,12 @@ app.use(bodyParser.json());
 app.use("/api", loginRoute);
 app.use("/api", studentStatusRoute);
 app.use("/api", studentProfileRoute);
+app.use("/api", changePasswordRoute);
 
 // === Start Server ===
 app.listen(PORT, () => {
   console.log(`🚀 Server running at http://localhost:${PORT}`);
 });
-
 
 
 

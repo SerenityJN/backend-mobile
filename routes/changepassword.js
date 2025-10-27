@@ -23,7 +23,7 @@ router.post("/change-password", async (req, res) => {
     }
 
     await db.promise().query(
-      "UPDATE students SET password = ? WHERE id = ?",
+      "UPDATE student_accounts SET password = ? WHERE id = ?",
       [newPassword, user[0].id]
     );
 

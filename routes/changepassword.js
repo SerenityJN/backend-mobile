@@ -14,7 +14,7 @@ router.post("/change-password", async (req, res) => {
   try {
     // Example: Replace this with your actual user logic
     const [user] = await db.promise().query(
-      "SELECT * FROM students WHERE password = ?",
+      "SELECT * FROM student_accounts WHERE password = ?",
       [currentPassword]
     );
 

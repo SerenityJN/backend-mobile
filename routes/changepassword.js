@@ -24,7 +24,7 @@ router.post("/change-password", async (req, res) => {
 
     // Update to new password
     await db.query(
-      "UPDATE student_accounts SET password = ? WHERE id = ?",
+      "UPDATE student_accounts SET password = ? WHERE STD_ID = ?",
       [newPassword, user[0].id]
     );
 

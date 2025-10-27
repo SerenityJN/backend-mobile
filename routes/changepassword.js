@@ -1,36 +1,31 @@
-// routes/changepassword.js
 import express from "express";
 import db from "../models/db.js";
 
 const router = express.Router();
 
 router.post("/change-password", async (req, res) => {
-  const { email, currentPassword, newPassword } = req.body;
+  const { currentPassword, newPassword } = req.body;
 
-  if (!email || !currentPassword || !newPassword) {
+  if (!currentPassword || !newPassword) {
     return res.status(400).json({ success: false, message: "All fields are required" });
   }
 
   try {
-    // ✅ Verify that the email exists and password matches
-    const [user] = await db
-      .promise()
-      .query("SELECT * FROM student_accounts WHERE email = ? AND password = ?", [
-        email,
-        currentPassword,
-      ]);
+    // Find user by current password (this is just for demo, normally use user ID or email)
+    const [rows] = await db.promise().query(
+      "SELECT * FROM student_accounts WHERE password = ?",
+      [currentPassword]
+    );
 
-    if (user.length === 0) {
-      return res.status(404).json({ success: false, message: "Email not found or password incorrect" });
+    if (rows.length === 0) {
+      return res.status(401).json({ success: false, message: "Current password incorrect" });
     }
 
-    // ✅ Update password
-    await db
-      .promise()
-      .query("UPDATE student_accounts SET password = ? WHERE email = ?", [
-        newPassword,
-        email,
-      ]);
+    // Update the password
+    await db.promise().query(
+      "UPDATE student_accounts SET password = ? WHERE id = ?",
+      [newPassword, rows[0].id]
+    );
 
     res.json({ success: true, message: "Password changed successfully" });
   } catch (error) {

@@ -1,5 +1,6 @@
 // routes/announcements.js
 import express from "express";
+import db from "../models/db.js";
 const router = express.Router();
 
 // Example static or database-based response
@@ -28,3 +29,4 @@ router.post("/announcements", async (req, res) => {
 });
 
 export default router;
+

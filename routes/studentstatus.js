@@ -5,16 +5,16 @@ import db from "../models/db.js";
 const router = express.Router();
 
 router.get("/student_status", async (req, res) => {
-  const { STD_ID } = req.query;
+  const { LRN } = req.query;
 
-  if (!STD_ID) {
+  if (!LRN) {
     return res.status(400).json({ error: "Missing student ID" });
   }
 
   try {
     const [rows] = await db.query(
-      "SELECT student_status FROM student_details WHERE STD_ID = ?",
-      [STD_ID]
+      "SELECT student_status FROM student_details WHERE LRN = ?",
+      [LRN]
     );
 
     if (rows.length === 0) {

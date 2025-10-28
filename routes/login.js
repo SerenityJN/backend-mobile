@@ -18,9 +18,9 @@ router.post("/login", async (req, res) => {
 
   try {
     const [rows] = await db.query(
-      `SELECT sd.STD_ID, sd.email, sa.password
+      `SELECT sd.LRN, sd.email, sa.password
        FROM student_details sd
-       INNER JOIN student_accounts sa ON sd.STD_ID = sa.STD_ID
+       INNER JOIN student_accounts sa ON sd.LRN = sa.LRN
        WHERE sd.email = ?
        LIMIT 1`,
       [email]

@@ -23,7 +23,7 @@ router.get("/student_status", async (req, res) => {
       return res.status(404).json({ error: "Student not found" });
     }
 
-    res.json({ student_status: rows[0].student_status });
+    res.json({ enrollment_status: rows[0].enrollment_status });
   } catch (err) {
     console.error("❌ DB Error:", err.message);
     res.status(500).json({ error: "Database error", details: err.message });

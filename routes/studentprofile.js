@@ -23,7 +23,7 @@ router.get("/student-profile", async (req, res) => {
          strand,
          yearlevel
        FROM student_details
-       WHERE STD_ID = ?`,
+       WHERE LRN = ?`,
       [LRN]
     );
 
@@ -43,7 +43,7 @@ router.get("/student-profile", async (req, res) => {
 router.put("/update-student-profile", async (req, res) => {
   const { LRN, firstname, middlename, lastname, suffix, email, strand, yearlevel } = req.body;
 
-  if (!STD_ID) {
+  if (!LRN) {
     return res.status(400).json({ success: false, message: "Missing student ID" });
   }
 

@@ -51,7 +51,7 @@ router.put("/update-student-profile", async (req, res) => {
     const [result] = await db.query(
       `UPDATE student_details
        SET firstname = ?, middlename = ?, lastname = ?, suffix = ?, email = ?, strand = ?, yearlevel = ?
-       WHERE STD_ID = ?`,
+       WHERE LRN = ?`,
       [firstname, middlename, lastname, suffix, email, strand, yearlevel, LRN]
     );
 

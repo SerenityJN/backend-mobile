@@ -48,6 +48,7 @@ router.put("/update-student-profile", async (req, res) => {
   }
 
   try {
+    
     const [result] = await db.query(
       `UPDATE student_details
        SET firstname = ?, middlename = ?, lastname = ?, suffix = ?, email = ?, strand = ?, yearlevel = ?
@@ -58,6 +59,7 @@ router.put("/update-student-profile", async (req, res) => {
     if (result.affectedRows === 0) {
       return res.status(404).json({ success: false, message: "Student not found or no changes made." });
     }
+    console.log("📩 Received update request:", req.body);
 
     res.json({ success: true, message: "Profile updated successfully." });
   } catch (err) {

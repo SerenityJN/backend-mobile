@@ -4,6 +4,7 @@ import cors from "cors";
 
 import bodyParser from "body-parser";
 import loginRoute from "./routes/login.js";
+import enrollmentRouter from "./routes/enrollmentRoute.js";
 import studentStatusRoute from "./routes/studentstatus.js";
 import studentProfileRoute from "./routes/studentprofile.js";
 import changePasswordRoute from "./routes/changepassword.js";
@@ -17,6 +18,7 @@ app.use(bodyParser.json());
 
 // === Routes ===
 app.use("/api", loginRoute);
+app.use("/api/enrollment-status", enrollmentRouter);
 app.use("/api", studentStatusRoute);
 app.use("/api", studentProfileRoute);
 app.use("/api", changePasswordRoute);

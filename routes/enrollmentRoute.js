@@ -9,7 +9,7 @@ router.get("/:track_code", async (req, res) => {
 
   try {
     const [rows] = await db.query(
-      `SELECT sd.enrollment_status 
+      `SELECT sd.enrollment_status, rejection_reason 
        FROM student_accounts sa
        JOIN student_details sd ON sa.LRN = sd.LRN
        WHERE sa.track_code = ?`,

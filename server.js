@@ -3,7 +3,7 @@ import express from "express";
 import cors from "cors";
 
 import bodyParser from "body-parser";
-import loginRoute from "./routes/login.js";
+import loginRoute from "./routes/AuthLogin.js";
 import enrollmentRouter from "./routes/enrollmentRoute.js";
 import studentStatusRoute from "./routes/studentstatus.js";
 import studentProfileRoute from "./routes/studentprofile.js";

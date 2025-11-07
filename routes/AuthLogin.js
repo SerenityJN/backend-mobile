@@ -65,7 +65,7 @@ router.post("/request-otp", async (req, res) => {
   try {
     // Check if email exists in database
     const [rows] = await db.query(
-      `SELECT sd.LRN, sd.email, sd.first_name 
+      `SELECT sd.LRN, sd.email, sd.firstname 
        FROM student_details sd 
        WHERE sd.email = ? 
        LIMIT 1`,
@@ -127,7 +127,7 @@ router.post("/request-otp", async (req, res) => {
                 <h1>Southville 8B Senior High School</h1>
             </div>
             
-            <p>Hello <strong>${user.first_name}</strong>,</p>
+            <p>Hello <strong>${user.firstname}</strong>,</p>
             
             <p>Your One-Time Password (OTP) for login is:</p>
             
@@ -241,7 +241,7 @@ router.post("/verify-otp", async (req, res) => {
 
     // OTP is valid - get user data
     const [rows] = await db.query(
-      `SELECT sd.LRN, sd.email, sd.first_name, sd.last_name
+      `SELECT sd.LRN, sd.email, sd.firstname, sd.lastname
        FROM student_details sd 
        WHERE sd.email = ? 
        LIMIT 1`,
@@ -290,8 +290,8 @@ router.post("/verify-otp", async (req, res) => {
       user: {
         LRN: user.LRN,
         email: user.email,
-        first_name: user.first_name,
-        last_name: user.last_name
+        firstname: user.firstname,
+        lastname: user.lastname
       }
     });
 
@@ -320,7 +320,7 @@ router.post("/resend-otp", async (req, res) => {
   try {
     // Check if email exists in database
     const [rows] = await db.query(
-      `SELECT sd.LRN, sd.email, sd.first_name 
+      `SELECT sd.LRN, sd.email, sd.firstname 
        FROM student_details sd 
        WHERE sd.email = ? 
        LIMIT 1`,
@@ -381,7 +381,7 @@ router.post("/resend-otp", async (req, res) => {
                 <h1>Southville 8B Senior High School</h1>
             </div>
             
-            <p>Hello <strong>${user.first_name}</strong>,</p>
+            <p>Hello <strong>${user.firstname}</strong>,</p>
             
             <div class="info">
                 <strong>📧 New OTP Requested:</strong> You requested a new verification code.

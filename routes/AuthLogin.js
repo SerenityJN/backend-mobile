@@ -2,6 +2,7 @@ import express from "express";
 import db from "../models/db.js";
 import jwt from "jsonwebtoken";
 import { Resend } from "resend";
+import bcrypt from "bcryptjs";
 
 const router = express.Router();
 
@@ -24,23 +25,203 @@ if (!process.env.JWT_SECRET) {
 // Store OTPs temporarily (in production, use Redis)
 const otpStore = new Map();
 
+// Rate limiting store
+const rateLimitStore = new Map();
+
 // Generate random OTP
 const generateOTP = () => {
   return Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
 };
 
-// Clean up expired OTPs periodically
+// Rate limiting function
+const checkRateLimit = (identifier, limit = 5, windowMs = 15 * 60 * 1000) => {
+  const now = Date.now();
+  const windowStart = now - windowMs;
+
+  if (!rateLimitStore.has(identifier)) {
+    rateLimitStore.set(identifier, []);
+  }
+
+  const requests = rateLimitStore.get(identifier).filter(time => time > windowStart);
+  rateLimitStore.set(identifier, requests);
+
+  if (requests.length >= limit) {
+    return false;
+  }
+
+  requests.push(now);
+  return true;
+};
+
+// Clean up expired OTPs and rate limits periodically
 setInterval(() => {
   const now = Date.now();
+  
+  // Clean OTP store
   for (const [email, data] of otpStore.entries()) {
     if (now > data.expiresAt) {
       otpStore.delete(email);
       console.log(`🧹 Cleaned expired OTP for: ${email}`);
     }
   }
+  
+  // Clean rate limit store (keep only last 24 hours)
+  for (const [key, timestamps] of rateLimitStore.entries()) {
+    const recentTimestamps = timestamps.filter(time => now - time < 24 * 60 * 60 * 1000);
+    if (recentTimestamps.length === 0) {
+      rateLimitStore.delete(key);
+    } else {
+      rateLimitStore.set(key, recentTimestamps);
+    }
+  }
 }, 5 * 60 * 1000); // Run every 5 minutes
 
-// 1. Request OTP Endpoint
+// Password Login Endpoint
+router.post("/login", async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({
+      success: false,
+      message: "Please enter both email and password.",
+    });
+  }
+
+  // Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({
+      success: false,
+      message: "Please enter a valid email address.",
+    });
+  }
+
+  // Rate limiting for login attempts
+  if (!checkRateLimit(`login:${email}`, 5, 15 * 60 * 1000)) {
+    return res.status(429).json({
+      success: false,
+      message: "Too many login attempts. Please try again later or use OTP login."
+    });
+  }
+
+  console.log("🔹 Password login attempt for:", email);
+
+  try {
+    // Check if user exists and verify password
+    const [rows] = await db.query(
+      `SELECT 
+        sd.LRN, 
+        sd.email, 
+        sd.firstname, 
+        sd.lastname,
+        sa.password
+      FROM student_details sd 
+      INNER JOIN student_accounts sa ON sd.LRN = sa.LRN
+      WHERE sd.email = ? 
+      LIMIT 1`,
+      [email]
+    );
+
+    if (rows.length === 0) {
+      console.log("⚠️ Login failed - email not found:", email);
+      return res.status(404).json({ 
+        success: false, 
+        message: "Invalid email or password." 
+      });
+    }
+
+    const user = rows[0];
+
+    // Check if password field exists
+    if (!user.password) {
+      console.log("⚠️ No password set for user:", email);
+      return res.status(401).json({ 
+        success: false, 
+        message: "Password login not available. Please use OTP login." 
+      });
+    }
+
+    // Verify password - using bcrypt for security
+    let isPasswordValid = false;
+    try {
+      // Check if password is hashed (starts with $2b$)
+      if (user.password.startsWith('$2b$')) {
+        isPasswordValid = await bcrypt.compare(password, user.password);
+      } else {
+        // Fallback for plain text passwords (migrate to bcrypt in production)
+        isPasswordValid = password === user.password;
+        
+        // Optional: Auto-upgrade to hashed password
+        if (isPasswordValid && process.env.AUTO_HASH_PASSWORDS === 'true') {
+          const hashedPassword = await bcrypt.hash(password, 12);
+          await db.query(
+            `UPDATE student_details SET password = ? WHERE email = ?`,
+            [hashedPassword, email]
+          );
+          console.log("🔒 Auto-upgraded password to hash for:", email);
+        }
+      }
+    } catch (hashError) {
+      console.error("Password verification error:", hashError);
+      isPasswordValid = password === user.password; // Fallback
+    }
+
+    if (!isPasswordValid) {
+      console.log("⚠️ Invalid password for:", email);
+      return res.status(401).json({ 
+        success: false, 
+        message: "Invalid email or password." 
+      });
+    }
+
+    // Check if JWT secret is configured
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      console.error("❌ JWT_SECRET is not configured");
+      return res.status(500).json({ 
+        success: false, 
+        message: "Server configuration error." 
+      });
+    }
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { 
+        userId: user.LRN,
+        email: user.email,
+        type: 'student'
+      },
+      jwtSecret,
+      { expiresIn: '7d' }
+    );
+
+    console.log("✅ Password login successful for:", email);
+
+    // Return user data (excluding password)
+    res.json({
+      success: true,
+      message: "Login successful!",
+      token: token,
+      user: {
+        LRN: user.LRN,
+        email: user.email,
+        firstname: user.firstname,
+        lastname: user.lastname,
+        first_name: user.firstname,
+        last_name: user.lastname
+      }
+    });
+
+  } catch (err) {
+    console.error("❌ Login error:", err);
+    return res.status(500).json({ 
+      success: false, 
+      message: "Login failed. Please try again." 
+    });
+  }
+});
+
+// Request OTP Endpoint
 router.post("/request-otp", async (req, res) => {
   const { email } = req.body;
   
@@ -57,6 +238,14 @@ router.post("/request-otp", async (req, res) => {
     return res.status(400).json({
       success: false,
       message: "Please enter a valid email address.",
+    });
+  }
+
+  // Rate limiting for OTP requests
+  if (!checkRateLimit(`otp:${email}`, 3, 15 * 60 * 1000)) {
+    return res.status(429).json({
+      success: false,
+      message: "Too many OTP requests. Please try again later."
     });
   }
 
@@ -149,7 +338,6 @@ router.post("/request-otp", async (req, res) => {
 
     if (error) {
       console.error("❌ Resend error:", error);
-      // Don't reveal OTP in production, but useful for development
       if (process.env.NODE_ENV === 'development') {
         return res.status(500).json({ 
           success: false, 
@@ -178,7 +366,7 @@ router.post("/request-otp", async (req, res) => {
   }
 });
 
-// 2. Verify OTP and Issue Token
+// Verify OTP and Issue Token
 router.post("/verify-otp", async (req, res) => {
   const { email, otp } = req.body;
 
@@ -194,6 +382,14 @@ router.post("/verify-otp", async (req, res) => {
     return res.status(400).json({
       success: false,
       message: "OTP must be a 6-digit number.",
+    });
+  }
+
+  // Rate limiting for OTP verification attempts
+  if (!checkRateLimit(`verify:${email}`, 10, 15 * 60 * 1000)) {
+    return res.status(429).json({
+      success: false,
+      message: "Too many verification attempts. Please request a new OTP."
     });
   }
 
@@ -275,7 +471,7 @@ router.post("/verify-otp", async (req, res) => {
         type: 'student'
       },
       jwtSecret,
-      { expiresIn: '7d' } // Token expires in 7 days
+      { expiresIn: '7d' }
     );
 
     // Clean up used OTP
@@ -291,7 +487,9 @@ router.post("/verify-otp", async (req, res) => {
         LRN: user.LRN,
         email: user.email,
         firstname: user.firstname,
-        lastname: user.lastname
+        lastname: user.lastname,
+        first_name: user.firstname,
+        last_name: user.lastname
       }
     });
 
@@ -304,7 +502,7 @@ router.post("/verify-otp", async (req, res) => {
   }
 });
 
-// 3. Resend OTP Endpoint
+// Resend OTP Endpoint
 router.post("/resend-otp", async (req, res) => {
   const { email } = req.body;
 
@@ -312,6 +510,14 @@ router.post("/resend-otp", async (req, res) => {
     return res.status(400).json({
       success: false,
       message: "Email address is required.",
+    });
+  }
+
+  // Rate limiting for OTP resend
+  if (!checkRateLimit(`resend:${email}`, 2, 15 * 60 * 1000)) {
+    return res.status(429).json({
+      success: false,
+      message: "Too many resend requests. Please try again later."
     });
   }
 
@@ -425,6 +631,17 @@ router.post("/resend-otp", async (req, res) => {
       message: "Failed to resend OTP. Please try again." 
     });
   }
+});
+
+// Health check endpoint
+router.get("/health", (req, res) => {
+  res.json({
+    success: true,
+    message: "Auth service is running",
+    timestamp: new Date().toISOString(),
+    otpStoreSize: otpStore.size,
+    rateLimitStoreSize: rateLimitStore.size
+  });
 });
 
 // Authentication middleware

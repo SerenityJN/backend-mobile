@@ -9,7 +9,7 @@ router.get("/:track_code", async (req, res) => {
 
   try {
     const [rows] = await db.query(
-      `SELECT sd.enrollment_status, sd.rejection_reason
+      `SELECT sd.enrollment_status, sd.reason
        FROM student_accounts sa
        JOIN student_details sd ON sa.LRN = sd.LRN
        WHERE sa.track_code = ?`,
@@ -23,7 +23,7 @@ router.get("/:track_code", async (req, res) => {
     return res.json({
       success: true,
       enrollment_status: rows[0].enrollment_status,
-      rejection_reason: rows[0].rejection_reason || null,
+      reason: rows[0].reason || null,
     });
   } catch (err) {
     console.error(err);

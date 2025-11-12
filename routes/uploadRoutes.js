@@ -44,7 +44,7 @@ router.post("/document", async (req, res) => {
     }
 
     // Create folder path
-    const folderPath = `documents/${LRN}_${last_name.toUpperCase()}`;
+    const folderPath = `documents/${LRN}_${lastname.toUpperCase()}`;
     
     // Determine resource type for Cloudinary
     const resourceType = file.mimetype === 'application/pdf' ? 'raw' : 'image';
@@ -174,5 +174,6 @@ router.get("/student-documents", async (req, res) => {
     });
   }
 });
+
 
 export default router;

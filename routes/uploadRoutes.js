@@ -7,12 +7,12 @@ const router = express.Router();
 
 // === POST upload document to Cloudinary ===
 router.post("/document", async (req, res) => {
-  const { LRN, document_type, file_name, last_name } = req.body;
+  const { LRN, document_type, file_name, lastname } = req.body;
 
   if (!LRN || !document_type || !file_name || !last_name) {
     return res.status(400).json({ 
       success: false, 
-      message: "Missing required fields: LRN, document_type, file_name, last_name" 
+      message: "Missing required fields: LRN, document_type, file_name, lastname" 
     });
   }
 
@@ -177,3 +177,4 @@ router.get("/student-documents", async (req, res) => {
 
 
 export default router;
+

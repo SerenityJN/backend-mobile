@@ -7,12 +7,12 @@ const router = express.Router();
 
 // === POST upload document to Cloudinary ===
 router.post("/document", async (req, res) => {
-  const { LRN, document_type, file_name, lastname } = req.body;
+  const { LRN, document_type, file_name, last_name } = req.body;
 
-  if (!LRN || !document_type || !file_name || !lastname) {
+  if (!LRN || !document_type || !file_name || !last_name) {
     return res.status(400).json({ 
       success: false, 
-      message: "Missing required fields: LRN, document_type, file_name, lastname" 
+      message: "Missing required fields: LRN, document_type, file_name, last_name" 
     });
   }
 
@@ -44,7 +44,7 @@ router.post("/document", async (req, res) => {
     }
 
     // Create folder path
-    const folderPath = `documents/${LRN}_${lastname.toUpperCase()}`;
+    const folderPath = `documents/${LRN}_${last_name.toUpperCase()}`;
     
     // Determine resource type for Cloudinary
     const resourceType = file.mimetype === 'application/pdf' ? 'raw' : 'image';
@@ -176,6 +176,47 @@ router.get("/student-documents", async (req, res) => {
 });
 
 
+
+router.post("/enroll-second-sem", async (req, res) => {
+  const { LRN, last_name, school_year } = req.body;
+
+  if (!req.files || !req.files.grade_slip) {
+    return res.status(400).json({ success: false, message: "No grade slip uploaded" });
+  }
+
+  try {
+    const file = req.files.grade_slip;
+    const folderPath = `enrollments/${LRN}_${last_name.toUpperCase()}`;
+
+    // 1. Upload to Cloudinary (Consistent with your birth_cert logic)
+    const uploadResult = await new Promise((resolve, reject) => {
+      cloudinary.uploader.upload_stream(
+        {
+          folder: folderPath,
+          public_id: `grade_slip_2nd_sem_${school_year}`,
+          resource_type: "image",
+        },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      ).end(file.data);
+    });
+
+    // 2. Update Database so it's filterable
+    // We update the 'enrollments' table (or student_documents if you added a grade_slip column)
+    const query = `
+      INSERT INTO student_enrollments (LRN, school_year, semester, grade_slip, status, enrollment_type)
+      VALUES (?, ?, '2nd', ?, 'pending', 'continuing')
+      ON DUPLICATE KEY UPDATE grade_slip = VALUES(grade_slip), status = 'pending'
+    `;
+
+    await db.query(query, [LRN, school_year, uploadResult.secure_url]);
+
+    res.json({ success: true, message: "2nd Semester Enrollment Submitted!" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 export default router;
-
-

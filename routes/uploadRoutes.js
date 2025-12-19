@@ -216,7 +216,7 @@ router.post("/enroll-second-sem", async (req, res) => {
       const updateQuery = `
         UPDATE student_enrollments 
         SET grade_slip = ?, status = 'pending', enrollment_type = 'continuing'
-        WHERE LRN = ? AND school_year = ? AND semester = '2nd'
+        WHERE LRN = ? AND school_year = ?
       `;
       await db.query(updateQuery, [uploadResult.secure_url, LRN, school_year]);
       console.log(`📝 Updated enrollment for LRN: ${LRN}`);
@@ -238,6 +238,7 @@ router.post("/enroll-second-sem", async (req, res) => {
 });
 
 export default router;
+
 
 
 

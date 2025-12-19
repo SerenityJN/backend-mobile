@@ -224,7 +224,7 @@ router.post("/enroll-second-sem", async (req, res) => {
       // 4. IF NOT EXISTS -> INSERT a new row
       const insertQuery = `
         INSERT INTO student_enrollments (LRN, school_year, semester, grade_slip, status, enrollment_type)
-        VALUES (?, ?, '2nd', ?, 'pending', 'continuing')
+        VALUES (?, ?, '1st', ?, 'pending', 'continuing')
       `;
       await db.query(insertQuery, [LRN, school_year, uploadResult.secure_url]);
       console.log(`🆕 Created new enrollment for LRN: ${LRN}`);
@@ -238,4 +238,5 @@ router.post("/enroll-second-sem", async (req, res) => {
 });
 
 export default router;
+
 

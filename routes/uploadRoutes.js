@@ -188,13 +188,15 @@ router.post("/enroll-second-sem", async (req, res) => {
     const file = req.files.grade_slip;
     const folderPath = `enrollments/${LRN}_${last_name.toUpperCase()}`;
 
-    // 1. Upload to Cloudinary (Consistent with your birth_cert logic)
+    // 1. Upload to Cloudinary 
+    // (public_id ensures the IMAGE is overwritten in Cloudinary as well)
     const uploadResult = await new Promise((resolve, reject) => {
       cloudinary.uploader.upload_stream(
         {
           folder: folderPath,
           public_id: `grade_slip_2nd_sem_${school_year}`,
           resource_type: "image",
+          overwrite: true, // This overwrites the existing file in Cloudinary
         },
         (error, result) => {
           if (error) reject(error);
@@ -203,20 +205,37 @@ router.post("/enroll-second-sem", async (req, res) => {
       ).end(file.data);
     });
 
-    // 2. Update Database so it's filterable
-    // We update the 'enrollments' table (or student_documents if you added a grade_slip column)
-    const query = `
-      INSERT INTO student_enrollments (LRN, school_year, semester, grade_slip, status, enrollment_type)
-      VALUES (?, ?, '2nd', ?, 'pending', 'continuing')
-      ON DUPLICATE KEY UPDATE grade_slip = VALUES(grade_slip), status = 'pending'
-    `;
+    // 2. CHECK if a record already exists for this LRN, Year, and Semester
+    const [existing] = await db.query(
+      "SELECT id FROM student_enrollments WHERE LRN = ? AND school_year = ? AND semester = '2nd'",
+      [LRN, school_year]
+    );
 
-    await db.query(query, [LRN, school_year, uploadResult.secure_url]);
+    if (existing.length > 0) {
+      // 3. IF EXISTS -> UPDATE the existing row
+      const updateQuery = `
+        UPDATE student_enrollments 
+        SET grade_slip = ?, status = 'pending', enrollment_type = 'continuing'
+        WHERE LRN = ? AND school_year = ? AND semester = '2nd'
+      `;
+      await db.query(updateQuery, [uploadResult.secure_url, LRN, school_year]);
+      console.log(`📝 Updated enrollment for LRN: ${LRN}`);
+    } else {
+      // 4. IF NOT EXISTS -> INSERT a new row
+      const insertQuery = `
+        INSERT INTO student_enrollments (LRN, school_year, semester, grade_slip, status, enrollment_type)
+        VALUES (?, ?, '2nd', ?, 'pending', 'continuing')
+      `;
+      await db.query(insertQuery, [LRN, school_year, uploadResult.secure_url]);
+      console.log(`🆕 Created new enrollment for LRN: ${LRN}`);
+    }
 
     res.json({ success: true, message: "2nd Semester Enrollment Submitted!" });
   } catch (err) {
+    console.error("❌ Error:", err.message);
     res.status(500).json({ success: false, message: err.message });
   }
 });
 
 export default router;
+

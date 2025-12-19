@@ -211,7 +211,7 @@ router.post("/enroll-second-sem", async (req, res) => {
       [LRN, school_year]
     );
 
-    if (existing.length > 0) {
+   if (existing.length > 0) {
       // 3. IF EXISTS -> UPDATE the existing row
       const updateQuery = `
         UPDATE student_enrollments 
@@ -220,14 +220,25 @@ router.post("/enroll-second-sem", async (req, res) => {
       `;
       await db.query(updateQuery, [uploadResult.secure_url, LRN, school_year]);
       console.log(`📝 Updated enrollment for LRN: ${LRN}`);
+    } else {
+      // 4. IF NOT EXISTS -> INSERT a new row
+      const insertQuery = `
+        INSERT INTO student_enrollments (LRN, school_year, semester, grade_slip, status, enrollment_type)
+        VALUES (?, ?, '1st', ?, 'pending', 'continuing')
+      `;
+      await db.query(insertQuery, [LRN, school_year, uploadResult.secure_url]);
+      console.log(`🆕 Created new enrollment for LRN: ${LRN}`);
     }
-  }catch (err) {
+
+    res.json({ success: true, message: "2nd Semester Enrollment Submitted!" });
+  } catch (err) {
     console.error("❌ Error:", err.message);
     res.status(500).json({ success: false, message: err.message });
   }
 });
 
 export default router;
+
 
 
 

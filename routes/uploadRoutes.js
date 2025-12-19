@@ -237,7 +237,7 @@ router.post("/enroll-second-sem", async (req, res) => {
   }
 });
 
-app.get('/SecondSemester/user-status/:LRN', async (req, res) => {
+router.post('/SecondSemester/user-status/:LRN', async (req, res) => {
   const { LRN } = req.params;
   
   const enrollment = await db.query(
@@ -260,6 +260,7 @@ app.get('/SecondSemester/user-status/:LRN', async (req, res) => {
 
 
 export default router;
+
 
 
 

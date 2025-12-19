@@ -237,6 +237,29 @@ router.post("/enroll-second-sem", async (req, res) => {
   }
 });
 
+app.get('/SecondSemester/user-status/:LRN', async (req, res) => {
+  const { LRN } = req.params;
+  
+  const enrollment = await db.query(
+    'SELECT * FROM second_semester_enrollments WHERE LRN = ?',
+    [LRN]
+  );
+  
+  if (enrollment.length > 0) {
+    res.json({
+      enrolled: true,
+      submissionDate: enrollment[0].submission_date,
+      schoolYear: enrollment[0].school_year,
+      status: enrollment[0].status
+    });
+  } else {
+    res.json({ enrolled: false });
+  }
+});
+
+
+
 export default router;
+
 
 

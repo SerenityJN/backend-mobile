@@ -224,10 +224,11 @@ router.post("/enroll-second-sem", async (req, res) => {
   }catch (err) {
     console.error("❌ Error:", err.message);
     res.status(500).json({ success: false, message: err.message });
-  
+  }
 });
 
 export default router;
+
 
 
 

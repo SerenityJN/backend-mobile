@@ -221,10 +221,14 @@ router.post("/enroll-second-sem", async (req, res) => {
       await db.query(updateQuery, [uploadResult.secure_url, LRN, school_year]);
       console.log(`📝 Updated enrollment for LRN: ${LRN}`);
     }
-  }
+  }catch (err) {
+    console.error("❌ Error:", err.message);
+    res.status(500).json({ success: false, message: err.message });
+  
 });
 
 export default router;
+
 
 
 
